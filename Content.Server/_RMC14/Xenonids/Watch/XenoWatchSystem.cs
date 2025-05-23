@@ -1,10 +1,16 @@
-﻿using Content.Server.Chat.Systems;
+﻿using System.Linq;
+using Content.Server.Chat.Systems;
 using Content.Server.Popups;
+using Content.Shared._RMC14.Marines.Roles.Ranks;
 using Content.Shared._RMC14.Xenonids;
 using Content.Shared._RMC14.Xenonids.Evolution;
 using Content.Shared._RMC14.Xenonids.Hive;
+using Content.Shared._RMC14.Xenonids.Maturing;
+using Content.Shared._RMC14.Xenonids.Name;
+using Content.Shared._RMC14.Xenonids.Rank;
 using Content.Shared._RMC14.Xenonids.Watch;
 using Content.Shared.Mobs.Systems;
+using Content.Shared.NameModifier.Components;
 using Content.Shared.Popups;
 using Robust.Server.GameObjects;
 using Robust.Shared.Player;
@@ -119,12 +125,32 @@ public sealed class XenoWatchSystem : SharedXenoWatchSystem
             if (_mobState.IsDead(uid))
                 continue;
 
-            xenos.Add(new Xeno(GetNetEntity(uid), Name(uid, metaData), metaData.EntityPrototype?.ID));
+            var name = Name(uid, metaData);
+            xenos.Add(new Xeno(GetNetEntity(uid), name, metaData.EntityPrototype?.ID, BaseName(uid, name), Rank(uid)));
         }
 
-        xenos.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
-
         _ui.SetUiState(ent.Owner, XenoWatchUIKey.Key, new XenoWatchBuiState(xenos, hive.Comp.BurrowedLarva));
+    }
+
+    public string BaseName(EntityUid uid, string name)
+    {
+        if (TryComp<NameModifierComponent>(uid, out var nameModifier))
+            return nameModifier.BaseName;
+        return name;
+    }
+
+    public int Rank(EntityUid uid)
+    {
+        if (!TryComp<XenoRankComponent>(uid, out var rankComponent))
+            return -1;
+
+        if (HasComp<XenoMaturingComponent>(uid) || !TryComp<XenoRankNamesComponent>(uid, out var rankNamesComp))
+            return -1;
+
+        if (!rankNamesComp.RankNames.ContainsKey(rankComponent.Rank))
+            return -1;
+
+        return rankComponent.Rank;
     }
 
     public override void Watch(Entity<HiveMemberComponent?, ActorComponent?, EyeComponent?> watcher, Entity<HiveMemberComponent?> toWatch)

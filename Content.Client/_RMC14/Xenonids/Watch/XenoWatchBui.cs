@@ -1,4 +1,5 @@
-﻿using Content.Client._RMC14.Xenonids.UI;
+﻿using System.Linq;
+using Content.Client._RMC14.Xenonids.UI;
 using Content.Shared._RMC14.Xenonids.Watch;
 using JetBrains.Annotations;
 using Robust.Client.GameObjects;
@@ -39,7 +40,11 @@ public sealed class XenoWatchBui : BoundUserInterface
         _window.BurrowedLarvaLabel.Text = $"Burrowed Larva: {s.BurrowedLarva}";
         _window.XenoContainer.DisposeAllChildren();
 
-        foreach (var xeno in s.Xenos)
+        var xenos = s.Xenos
+            .OrderBy(x => x.BaseName, StringComparer.Ordinal)
+            .ThenByDescending(x => x.Rank);
+
+        foreach (var xeno in xenos)
         {
             Texture? texture = null;
             if (xeno.Id != null &&
